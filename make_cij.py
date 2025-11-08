@@ -72,9 +72,9 @@ def Projection_Angle(scan_start, scan_stop, scan_step):
    angle = np.linspace(scan_start, scan_stop, scan_step)
    return angle
 
-angle = Projection_Angle(0, 60, 2)
-x_size = 128
-y_size = 128
+angle = Projection_Angle(0, 90, 2)
+x_size = 512
+y_size = 512
 print(angle)
 cij_x, cij_0, cij_1, cij_2 = Make_Cij(y_size, x_size,angle)
 np.save(r"Cij/cij_x_2.npy",cij_x)

@@ -74,7 +74,7 @@ cij_x = np.load(r"Cij/cij_x_2.npy")
 cij_0 = np.load(r"Cij/cij_0_2.npy")
 cij_1 = np.load(r"Cij/cij_1_2.npy")
 cij_2 = np.load(r"Cij/cij_2_2.npy")
-sinogram = np.load("sinogram_vortex_2.npy")
+sinogram = np.load(r"sinogram/sinogram_unwrap.npy")
 layer, angle, x = sinogram.shape
 # sinogram1 = Filtering_Sinogram(sinogram[int(layer/2)])
 # sinogram2 = Filtering_Sinogram(sinogram[int(layer-1)])
@@ -84,11 +84,11 @@ for k in range (layer):
    if (k%25==0):
       print(f"iteration:{k}")
 
-np.save("result/2025_1031/BP/Back_Projection_0,90.npy",recon)
+# np.save("result/2025_1031/BP/Back_Projection_0,90.npy",recon)
 
-# plt.subplot(221,title=f"intensity,{0.15/128*(layer/2)*100:.1f}cm");plt.imshow(np.abs(recon1),"viridis");plt.colorbar(label='Amplitude')
-# plt.subplot(222,title=f"phase, {0.15/128*(layer/2)*100:.1f}cm");plt.imshow(np.angle(recon1),"hsv");plt.colorbar(label='Phase')
-# plt.subplot(223,title=f"intensity, {0.15/128*(layer-1)*100:.1f}cm");plt.imshow(np.abs(recon2),"viridis");plt.colorbar(label='Amplitude')
-# plt.subplot(224,title=f"phase, {0.15/128*(layer-1)*100:.1f}cm");plt.imshow(np.angle(recon2),"hsv");plt.colorbar(label='Phase')
-# plt.suptitle(f"Filtered Back Projection \n projection angle:0,90")
-# plt.show()
+plt.subplot(221,title=f"intensity,{0.15/128*(layer/2)*100:.1f}cm");plt.imshow(np.abs(recon[int(layer/2)]),"hsv");plt.colorbar(label='Phase')
+plt.subplot(222,title=f"phase, {0.15/128*(layer/2)*100:.1f}cm");plt.imshow(np.angle(recon[int(layer/2)]),"hsv");plt.colorbar(label='Phase')
+plt.subplot(223,title=f"intensity, {0.15/128*(layer-1)*100:.1f}cm");plt.imshow(np.abs(recon[int(layer-1)]),"hsv");plt.colorbar(label='Phase')
+plt.subplot(224,title=f"phase, {0.15/128*(layer-1)*100:.1f}cm");plt.imshow(np.angle(recon[int(layer-1)]),"hsv");plt.colorbar(label='Phase')
+plt.suptitle(f"Filtered Back Projection \n projection angle:0,90")
+plt.show()
