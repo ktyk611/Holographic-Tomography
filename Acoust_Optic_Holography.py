@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import cv2
 import numba
 
+# --- 音響渦の複素振幅の空間分布からのホログラム生成 ---
+
 # 伝達関数 ベクトル化
 def H_tf_vectorized(size: int, pitch, z, lamb):
     f_lim = 1 / (lamb * np.sqrt((2 * z / (size * pitch))**2 + 1))
@@ -90,11 +92,15 @@ def crop(fname,num):
     return img
 
 # 伝播用の関数
-def Prop(image_compex:np.ndarray, size:int, pitch, lam):
-    prop_func = H_tf_vectorized(size,pitch,lam)
-    img_fft = np.fft.fftshift(np.fft.fft2(image_compex)) * prop_func
+def Prop(image_compex:np.ndarray,z_prop, pitch, lam):
+    size ,q = image_compex.shape
+    img_pad = np.pad(image_compex,int(size/2))
+    prop_func = H_tf_vectorized(int(2*size),pitch,z_prop,lam)
+    img_fft = np.fft.fftshift(np.fft.fft2(img_pad)) * prop_func
     img_prop = np.fft.ifft2(np.fft.fftshift(img_fft))
-    return img_prop
+    y_size, x_size = img_prop.shape
+    img_prop_crop = img_prop[int(y_size/4):int(3*y_size/4),int(x_size/4):int(3*x_size/4)]
+    return img_prop_crop
 
 field = np.load(r"npy/acoustic_vortex_field_512.npy")
 c = 3e8
@@ -102,7 +108,7 @@ lam = 532e-9
 k = 1/lam
 n_0 = 1.0003
 p_0 = 101325 
-ganmma = 1006
+ganmma = 1.41
 pitch = 20e-6
 z_prop = 0.1
 
@@ -114,15 +120,15 @@ for i in range (z):
     sum_0 += np.abs(field[:,i,:])
     sum_90 += np.abs(field[:,:,i])
 
-# plt.subplot(121);plt.imshow(sum_0)
-# plt.subplot(122);plt.imshow(sum_90)
-# plt.show()
-
 phi_p0 = k * (n_0 - 1)/(ganmma*p_0) * sum_0
 phi_p90 = k * (n_0 - 1)/(ganmma*p_0) * sum_90
 
-ob_0 = np.zeros((y,x),dtype="complex128") + 255
-ob_90 = np.zeros((y,x),dtype="complex128") + 255
+plt.subplot(121);plt.imshow(phi_p0,"hsv")
+plt.subplot(122);plt.imshow(phi_p90,"hsv")
+plt.show()
+
+ob_0 = np.ones((y,x),dtype="complex128")
+ob_90 = np.ones((y,x),dtype="complex128")
 # plt.subplot(121);plt.imshow(np.abs(ob_0),"gray")
 # plt.subplot(122);plt.imshow(np.angle(ob_90),"gray")
 # plt.show()
@@ -130,47 +136,31 @@ ob_90 = np.zeros((y,x),dtype="complex128") + 255
 ob_0_phase = ob_0 * np.exp(1j*phi_p0)
 ob_90_phase = ob_90 * np.exp(1j*phi_p90)
 
-ob_0_phase_pad = np.pad(ob_0_phase,int(y/2))
-ob_90_phase_pad = np.pad(ob_90_phase,int(y/2))
-
-# plt.subplot(121);plt.imshow(np.abs(ob_0_phase),"gray", vmin=np.amin(np.abs(ob_0_phase)), vmax=np.amax(np.abs(ob_0_phase)))
-# plt.subplot(122);plt.imshow(np.angle(ob_90_phase),"gray")
-# plt.show()
-# img_write("intensity.png",normalize(np.abs(ob_0_phase_pad)))
-# img_write("phase.png",normalize(np.angle(ob_0_phase_pad)))
-
 # --- 伝播 ---
-prop_func = H_tf_vectorized(2*y, pitch, z_prop, lam)
-ob_0_prop = np.fft.fftshift(np.fft.fft2(ob_0_phase_pad)) * prop_func
-ob_90_prop = np.fft.fftshift(np.fft.fft2(ob_90_phase_pad)) * prop_func
-
-ob_0_proped = np.fft.ifft2(np.fft.fftshift(ob_0_prop))
-ob_90_proped = np.fft.ifft2(np.fft.fftshift(ob_90_prop))
-
-image_y, image_x = ob_0_proped.shape
-
-ob_0_proped_crop = crop(ob_0_proped, int(image_y))
-ob_90_proped_crop = crop(ob_90_proped, int(image_y))
+ob_0_proped_crop = Prop(ob_0_phase,z_prop,pitch,lam)
+ob_90_proped_crop = Prop(ob_90_phase,z_prop,pitch,lam)
 # plt.subplot(121);plt.imshow(np.abs(ob_0_proped_crop),"gray")
 # plt.subplot(122);plt.imshow(np.angle(ob_0_proped_crop),"gray")
 # plt.show()
+
 # --- 干渉 ---
 Hol_0 = ob_0_proped_crop/np.sqrt(np.abs(np.amax(ob_0_proped_crop))) + Ref_vectorized(y, pitch, lam)
 Hol_90 = ob_90_proped_crop/np.sqrt(np.abs(np.amax(ob_90_proped_crop))) + Ref2_vectorized(y, pitch, lam)
 
 # --- 多重化 ---
-# Hol = Hol_0 + Hol_90
+Hol = Hol_0 + Hol_90
 
-img_write("Hologram_0.png",normalize(np.abs(Hol_0)**2))
-img_write("Hologram_90.png",normalize(np.abs(Hol_90)**2))
+img_write(r"Hologram/Hologram_0.png",normalize(np.abs(Hol_0)**2))
+img_write(r"Hologram/Hologram_90.png",normalize(np.abs(Hol_90)**2))
+img_write(r"Hologram/Hologram_multi.png",normalize(np.abs(Hol)**2))
 Hol_0_fft = np.fft.fftshift(np.fft.fft2(np.abs(Hol_0)**2))
 Hol_90_fft = np.fft.fftshift(np.fft.fft2(np.abs(Hol_90)**2))
-# Hol_fft = np.fft.fftshift(np.fft.fft2(np.abs(Hol)**2))
+Hol_fft = np.fft.fftshift(np.fft.fft2(np.abs(Hol)**2))
 
 plt.subplot(231);plt.imshow(np.abs(Hol_0)**2,"gray")
 plt.subplot(232);plt.imshow(np.abs(Hol_90)**2,"gray")
 plt.subplot(234);plt.imshow(np.log(np.abs(Hol_0_fft)+1),"gray")
 plt.subplot(235);plt.imshow(np.log(np.abs(Hol_90_fft)+1),"gray")
-# plt.subplot(233);plt.imshow(np.abs(Hol)**2,"gray")
-# plt.subplot(236);plt.imshow(np.log(np.abs(Hol_fft)+1),"gray")
+plt.subplot(233);plt.imshow(np.abs(Hol)**2,"gray")
+plt.subplot(236);plt.imshow(np.log(np.abs(Hol_fft)+1),"gray")
 plt.show()
