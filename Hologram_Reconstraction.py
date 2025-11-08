@@ -32,11 +32,22 @@ def Ref(size:int, pitch, lamb):
             R[i,j] = np.exp(1j*2*np.pi/lamb * (x*np.sin(theata) + y*np.sin(theata)))
     return R
 
-def Ref_vectorized(size: int, pitch, lamb, phase_coefficient):
-    theta = phase_coefficient * np.arcsin(lamb / pitch / 2)
+# 参照光 ベクトル化
+def Ref_vectorized(size: int, pitch, lamb):
+    theta = 3/4 * np.arcsin(lamb / pitch / 2)
     coords_1d = (np.arange(size) - size / 2) * pitch
     X, Y = np.meshgrid(coords_1d, coords_1d)
     phase = (2 * np.pi / lamb) * (X + Y) * np.sin(theta)
+    R = np.exp(1j * phase)
+    
+    return R
+
+# 参照光２ ベクトル化
+def Ref_vectorized(size: int, pitch, lamb):
+    theta = 3/4 * np.arcsin(lamb / pitch / 2)
+    coords_1d = (np.arange(size) - size / 2) * pitch
+    X, Y = np.meshgrid(coords_1d, coords_1d)
+    phase = (2 * np.pi / lamb) * (X - Y) * np.sin(theta)
     R = np.exp(1j * phase)
     
     return R

@@ -49,11 +49,21 @@ def Ref(size:int, pitch, lamb):
             R[i,j] = np.exp(1j*2*np.pi/lamb * (x*np.sin(theata) + y*np.sin(theata)))
     return R
 
-def Ref_vectorized(size: int, pitch, lamb, phase_coefficient):
-    theta = phase_coefficient * np.arcsin(lamb / pitch / 2)
+def Ref_vectorized(size: int, pitch, lamb):
+    theta = 3/4 * np.arcsin(lamb / pitch / 2)
     coords_1d = (np.arange(size) - size / 2) * pitch
     X, Y = np.meshgrid(coords_1d, coords_1d)
     phase = (2 * np.pi / lamb) * (X + Y) * np.sin(theta)
+    R = np.exp(1j * phase)
+    
+    return R
+
+# 参照光２ ベクトル化
+def Ref2_vectorized(size: int, pitch, lamb):
+    theta = 3/4 * np.arcsin(lamb / pitch / 2)
+    coords_1d = (np.arange(size) - size / 2) * pitch
+    X, Y = np.meshgrid(coords_1d, coords_1d)
+    phase = (2 * np.pi / lamb) * (X - Y) * np.sin(theta)
     R = np.exp(1j * phase)
     
     return R
@@ -145,8 +155,8 @@ ob_90_proped_crop = crop(ob_90_proped, int(image_y))
 # plt.subplot(122);plt.imshow(np.angle(ob_0_proped_crop),"gray")
 # plt.show()
 # --- 干渉 ---
-Hol_0 = ob_0_proped_crop/np.sqrt(np.abs(np.amax(ob_0_proped_crop))) + Ref_vectorized(y, pitch, lam, 3/4)
-Hol_90 = ob_90_proped_crop/np.sqrt(np.abs(np.amax(ob_90_proped_crop))) + Ref_vectorized(y, pitch, lam, 3/4)
+Hol_0 = ob_0_proped_crop/np.sqrt(np.abs(np.amax(ob_0_proped_crop))) + Ref_vectorized(y, pitch, lam)
+Hol_90 = ob_90_proped_crop/np.sqrt(np.abs(np.amax(ob_90_proped_crop))) + Ref2_vectorized(y, pitch, lam)
 
 # --- 多重化 ---
 # Hol = Hol_0 + Hol_90
