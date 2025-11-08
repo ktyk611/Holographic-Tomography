@@ -1,0 +1,10 @@
+音響渦の Holographic-Tomography による3次元分布再構成のシミュレーション手順
+
+1. 3D_distribution.py で音場（音響渦）の3次元・複素振幅分布をnpyファイルで作成 (N*N*N)
+
+2. Acoust_Optic_Holography.py で 1 で作製した音場から，音響光学効果により位相を変調した光波の伝搬する．
+   伝播した光波と参照光の干渉・多重化してホログラムを保存．
+
+3. Hologram_Reconstraction.py を使って 2 で保存したホログラムを成分ごとに抽出・逆伝播して位相分布を得る．位相アンラッピング処理をしてSinogramにして .npyファイルとして保存
+
+4. MFISTA_tomography.py, CG_method.py, Back_Projection.py のいずれか（どれも再構成手法）を使って，3.で作成したsinogramから3次元構造を再構成
