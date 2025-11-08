@@ -8,3 +8,6 @@
 3. Hologram_Reconstraction.py を使って 2 で保存したホログラムを成分ごとに抽出・逆伝播して位相分布を得る．位相アンラッピング処理をしてSinogramにして .npyファイルとして保存
 
 4. MFISTA_tomography.py, CG_method.py, Back_Projection.py のいずれか（どれも再構成手法）を使って，3.で作成したsinogramから3次元構造を再構成
+
+mske_cij.py ラドン変換（順投影），逆ラドン変換（逆投影）を計算するための配列．投影角と画像サイズを指定する．疑似的な係数行列でもある．参照：篠原 広行 他，逐次近似画像再構成の基礎（電子版）p175,176，医療科学社
+make_sinogram.py 簡易的な sinogram 生成用コード，ホログラフィを用いたシミュレーションでは使用しない
