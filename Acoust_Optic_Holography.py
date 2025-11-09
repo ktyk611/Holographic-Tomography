@@ -135,7 +135,8 @@ cij_x = np.load(r"Cij/cij_x_60.npy")
 cij_0 = np.load(r"Cij/cij_0_60.npy")
 cij_1 = np.load(r"Cij/cij_1_60.npy")
 cij_2 = np.load(r"Cij/cij_2_60.npy")
-field = np.load(r"npy/acoustic_vortex_field_30cm.npy")
+field = np.load(r"npy/acoustic_vortex_field_5cm_delay1.6.npy")
+print(field.shape)
 c = 3e8
 lam = 532e-9
 k = 1/lam
@@ -159,9 +160,9 @@ angle = Projection_Angle(0,180,60)
 
 # --- 疑似係数行列を使ったラドン変換 ---
 length = len(angle)
-sino = np.zeros((y,length,x),dtype="complex128")
+sino = np.zeros((z,length,x),dtype="complex128")
 sum_n = np.zeros((length,y,x),dtype="complex128")
-for i in range (y):
+for i in range (z):
     sino[i] = Radon_Cij(field[i],cij_x, cij_0,cij_1,cij_2)
     for j in range (length):
         sum_n[j,i,:] = sino[i,j,:]
@@ -190,7 +191,7 @@ for i in range(length):
     # --- 干渉 ---
     Hol[i] = ob_phase_prop[i]/np.sqrt(np.abs(np.amax(ob_phase_prop[i])))+ Ref_vectorized(y, pitch, lam,shift)
     # --- ホログラム保存 ---
-    path = f"Hologram/Hologram_{i}.png"
+    path = f"Hologram/delay1.6/Hologram_{i}.png"
     img_write(path,normalize(np.abs(Hol[i])**2))
     # --- ホログラムのスペクトル（確認用，コメントアウトしてもいい） ---
     Hol_fft[i] = np.fft.fftshift(np.fft.fft2(np.abs(Hol[i])**2))
