@@ -70,14 +70,16 @@ def Make_Cij(Y_size, X_size, Angle):
 # 投影角度の配列生成
 def Projection_Angle(scan_start, scan_stop, scan_step):
    angle = np.linspace(scan_start, scan_stop, scan_step)
+   print(angle)
    return angle
 
-angle = Projection_Angle(0, 90, 2)
-x_size = 512
-y_size = 512
-print(angle)
+angle = Projection_Angle(0, 180, 60)
+
+x_size = 128
+y_size = 128
+
 cij_x, cij_0, cij_1, cij_2 = Make_Cij(y_size, x_size,angle)
-np.save(r"Cij/cij_x_2.npy",cij_x)
-np.save(r"Cij/cij_0_2.npy",cij_0)
-np.save(r"Cij/cij_1_2.npy",cij_1)
-np.save(r"Cij/cij_2_2.npy",cij_2)
+np.save(r"Cij/cij_x_60.npy",cij_x)
+np.save(r"Cij/cij_0_60.npy",cij_0)
+np.save(r"Cij/cij_1_60.npy",cij_1)
+np.save(r"Cij/cij_2_60.npy",cij_2)

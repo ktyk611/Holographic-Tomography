@@ -70,11 +70,11 @@ def Filtering_Sinogram(sinogram):
 
   return filtered
 
-cij_x = np.load(r"Cij/cij_x_2.npy")
-cij_0 = np.load(r"Cij/cij_0_2.npy")
-cij_1 = np.load(r"Cij/cij_1_2.npy")
-cij_2 = np.load(r"Cij/cij_2_2.npy")
-sinogram = np.load(r"sinogram/sinogram_unwrap.npy")
+cij_x = np.load(r"Cij/cij_x_3.npy")
+cij_0 = np.load(r"Cij/cij_0_3.npy")
+cij_1 = np.load(r"Cij/cij_1_3.npy")
+cij_2 = np.load(r"Cij/cij_2_3.npy")
+sinogram = np.load(r"sinogram/sinogram.npy")
 layer, angle, x = sinogram.shape
 # sinogram1 = Filtering_Sinogram(sinogram[int(layer/2)])
 # sinogram2 = Filtering_Sinogram(sinogram[int(layer-1)])

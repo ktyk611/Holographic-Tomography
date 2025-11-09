@@ -97,7 +97,7 @@ def Make_Cij(Y_size, X_size, Angle):
    return Cij_x, Cij_0, Cij_1, Cij_2
 
 # 疑似係数行列による投影（ラドン変換）
-# @numba.jit(nopython=True)
+@numba.jit(nopython=True,cache=True)
 def Radon_Cij(Img,Cij_x, Cij_0, Cij_1, Cij_2):
    Y_size, X_size = Img.shape
    num_angles, num_y, num_x = Cij_x.shape

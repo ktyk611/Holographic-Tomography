@@ -45,19 +45,19 @@ def Back_Projection_Cij(Sinogram, Cij_x, Cij_0, Cij_1, Cij_2):
 
 # 生成済みの係数行列の読み込み
 # 180どまで60step
-cij_x = np.load(r"Cij/cij_x_2.npy")
-cij_0 = np.load(r"Cij/cij_0_2.npy")
-cij_1 = np.load(r"Cij/cij_1_2.npy")
-cij_2 = np.load(r"Cij/cij_2_2.npy")
+cij_x = np.load(r"Cij/cij_x_3.npy")
+cij_0 = np.load(r"Cij/cij_0_3.npy")
+cij_1 = np.load(r"Cij/cij_1_3.npy")
+cij_2 = np.load(r"Cij/cij_2_3.npy")
 
 sinogram = np.load(r"sinogram/sinogram_unwrap.npy")
 layer, angle, x = sinogram.shape
 
 # --- 共役勾配法(係数行列) Conjugate Gradient Method ---
 # 共役勾配法（反復法）の繰り返し回数
-N = 5
+N = 4
 # g, d は再構成画像
-img_y, img_x = 512, 512
+img_y, img_x = layer, x
 rec = np.zeros((layer, img_y, img_x), dtype="complex128")
 f_history = np.zeros((layer,N))
 for k in range(layer):
@@ -85,7 +85,7 @@ for k in range(layer):
 
 # np.save("CG_method_recon_0,90.npy",rec)
 # rec = np.load("result/2025_1031/CG/CG_method_recon_0,90.npy")
-plt.subplot(111,title=f"z:{0.15/128*60*100:.1f}cm");plt.plot(np.log10(f_history[255] + 1));plt.xlabel("iteration(N)");plt.ylabel("log|A(x)-b|")
+plt.subplot(111,title=f"z:{0.15/1*60*100:.1f}cm");plt.plot(np.log10(f_history[int(layer/2)] + 1));plt.xlabel("iteration(N)");plt.ylabel("log|A(x)-b|")
 plt.show()
 # 再構成画像の表示
 plt.subplot(221,title=f"intensity,{0.15/128*(layer/2)*100:.1f}cm ");plt.imshow(np.abs(rec[int(layer/2)]));plt.colorbar(label='Amplitude')

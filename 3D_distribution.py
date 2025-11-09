@@ -26,23 +26,22 @@ def Ideal_Acoustic_Vortex(Target_mode, Plane_width, Resolution, z_observation,\
     return pure_Acoustic_vortex
 
 target_mode = 1
-plane_width = 0.15
-resolution = 512
+plane_width = 0.3
+resolution = 128
 num_of_transducer = 16
 r_of_array = 0.035
 speed = 340
 freq = 40e3
 wave_num = freq / speed
-N = 512
 
-field = np.zeros((N,resolution,resolution),dtype="complex128")
-for i in range(N):
-    z_obs = 0.1 * i /resolution
+field = np.zeros((resolution,resolution,resolution),dtype="complex128")
+for i in range(resolution):
+    z_obs = 0.3 * i /resolution
     field[i] = Ideal_Acoustic_Vortex(target_mode,plane_width,resolution,z_obs,num_of_transducer,r_of_array,wave_num)
     if (i%25 == 0):
         print(f"iteration:{i}")
 
-np.save("acoustic_vortex_field.npy",field)
+np.save(r"npy/acoustic_vortex_field_30cm.npy",field)
 
 # field = np.load("acoustic_vortex_field.npy")
 # angle = np.angle(field)
