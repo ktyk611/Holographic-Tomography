@@ -66,7 +66,7 @@ r_of_array = 0.035
 speed = 340
 freq = 40e3
 wave_num = freq / speed
-delta = 1.6*np.pi
+delta = 0*np.pi
 signal_pahse = np.linspace(0,2*np.pi,16) + delta
 signal = np.exp(1j*signal_pahse)
 
@@ -78,8 +78,8 @@ for i in range(resolution):
     if (i%25 == 0):
         print(f"iteration:{i}")
 
-field = np.pad(field,int(resolution/2))[int(resolution/2):int(resolution+resolution/2),:,:]
-np.save(r"npy/acoustic_vortex_field_5cm_delay1.6.npy",field)
+field = np.pad(field,int(resolution/2))#[int(resolution/2):int(resolution+resolution/2),:,:]
+np.save(r"npy/acoustic_vortex_field_5cm_delay0.npy",field)
 
 # field = np.load("acoustic_vortex_field.npy")
 # angle = np.angle(field)
