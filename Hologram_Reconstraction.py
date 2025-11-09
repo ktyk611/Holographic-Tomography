@@ -93,7 +93,7 @@ N = 60
 lam = 532e-9
 z_prop = 0.2
 pitch = 20e-6
-Hol_size = 128
+Hol_size = 256
 
 Hol = np.zeros((N,Hol_size,Hol_size))
 hol = np.zeros((N,Hol_size,Hol_size))
@@ -105,21 +105,22 @@ hol_recon = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
 recon_phase = np.zeros((N,Hol_size,Hol_size))
 recon_phase_norm = np.zeros((N,Hol_size,Hol_size))
 re_unwrap = np.zeros((N,Hol_size,Hol_size))
+re_offset = np.zeros((N,Hol_size,Hol_size))
 
 # --- 逆伝播用の関数 ---
 prop_func = H_tf_vectorized(Hol_size,pitch, z_prop,lam)
 
 # --- Hologram の逆伝播計算からの位相成分と位相アンラップ ---
 for i in range (N):
-    path = f"Hologram/Hologram_{i}.png"
+    path = f"Hologram/delay0/Hologram_{i}.png"
     Hol[i] = img_read(path)
     hol[i] = np.sqrt(Hol[i])
     # --- 空間周波数分布 ---
     hol_fft[i] = np.fft.fftshift(np.fft.fft2(Hol[i]))
     # --- 物体光成分の抽出 ---
-    hol_fft_crop[i] = hol_fft[i][96:128,96:128]
+    hol_fft_crop[i] = hol_fft[i][192:256,192:256]
     # --- ゼロパディング ---
-    hol_fft_pad[i] = np.pad(hol_fft_crop[i],48)
+    hol_fft_pad[i] = np.pad(hol_fft_crop[i],96)
     # --- 逆伝播 ---   
     hol_prop[i] = hol_fft_pad[i] * prop_func
     hol_recon[i] = np.fft.ifft2(np.fft.ifftshift(hol_prop[i]))
@@ -128,8 +129,11 @@ for i in range (N):
     recon_phase_norm[i] = normalize(recon_phase[i])
     # --- 位相アンラップ ---
     # unwrap_phase(対象画像,(アンラップ基準位置（y,x）))
-    re_unwrap[i] = unwrap_phase(recon_phase_norm[i],(0,63))
-
+    re_unwrap[i] = unwrap_phase(recon_phase_norm[i],(10,10))
+    # --- 位相オフセット ---
+    phase_offset = re_unwrap[i][10,10]
+    print(phase_offset)
+    re_offset[i] = re_unwrap[i] - phase_offset
 
 # --- ホログラムから Sinogram作成
 # img_z:投影角数
@@ -158,9 +162,9 @@ for i in range (img_y):
 print(f"unwrap:{sinogram_unwrap.shape}")
 print(f"wrap:{sinogram_wrap.shape}")
 print(f"complex:{sinogram_complex.shape}")
-np.save(r"sinogram/sinogram_unwrap.npy",sinogram_unwrap)
-np.save(r"sinogram/sinogram_wrap.npy",sinogram_wrap)
-np.save(r"sinogram/sinogram_complex.npy",sinogram_complex)
+# np.save(r"sinogram/sinogram_unwrap.npy",sinogram_unwrap)
+# np.save(r"sinogram/sinogram_wrap.npy",sinogram_wrap)
+# np.save(r"sinogram/sinogram_complex.npy",sinogram_complex)
 
 plt.subplot(131,title="hol_0_fft");plt.imshow(np.log(np.abs(hol_fft[0])+1),"gray")
 plt.subplot(132,title="hol_45_fft");plt.imshow(np.log(np.abs(hol_fft[30])+1),"gray")
@@ -172,9 +176,9 @@ plt.subplot(132,title="hol_45_fft");plt.imshow(np.log(np.abs(hol_fft_pad[30])+1)
 plt.subplot(133,title="hol_90_fft");plt.imshow(np.log(np.abs(hol_fft_pad[59])+1),"gray")
 plt.show()
 
-plt.subplot(231,title="0");plt.imshow(recon_phase[0],"viridis");plt.colorbar(label='Amplitude')
-plt.subplot(232,title="45");plt.imshow(recon_phase[30],"viridis");plt.colorbar(label='Amplitude')
-plt.subplot(233,title="90");plt.imshow(recon_phase[59],"viridis");plt.colorbar(label='Amplitude')
+plt.subplot(231,title="0");plt.imshow(recon_phase_norm[0],"hsv");plt.colorbar(label='phase')
+plt.subplot(232,title="45");plt.imshow(recon_phase_norm[30],"hsv");plt.colorbar(label='phase')
+plt.subplot(233,title="90");plt.imshow(recon_phase_norm[59],"hsv");plt.colorbar(label='phase')
 plt.subplot(234,title="0");plt.imshow(np.abs(recon_phase[0]),"viridis");plt.colorbar(label='Amplitude')
 plt.subplot(235,title="45");plt.imshow(np.abs(recon_phase[30]),"viridis");plt.colorbar(label='Amplitude')
 plt.subplot(236,title="90");plt.imshow(np.abs(recon_phase[59]),"viridis");plt.colorbar(label='Amplitude')
@@ -186,6 +190,12 @@ plt.subplot(131);plt.imshow(re_unwrap[0],"viridis")
 plt.subplot(132);plt.imshow(re_unwrap[30],"viridis")
 plt.subplot(133);plt.imshow(re_unwrap[59],"viridis")
 plt.suptitle(f"Hologram Recon Image Phase unwrap")
+plt.show()
+
+plt.subplot(131);plt.imshow(re_offset[0],"gray");plt.colorbar()
+plt.subplot(132);plt.imshow(re_offset[30],"gray");plt.colorbar()
+plt.subplot(133);plt.imshow(re_offset[59],"gray");plt.colorbar()
+plt.suptitle(f"Hologram Recon Image Phase remove offset")
 plt.show()
 
 plt.subplot(131,title="unwrap");plt.imshow(sinogram_unwrap[30],"gray")
