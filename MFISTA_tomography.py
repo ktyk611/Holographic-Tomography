@@ -362,25 +362,30 @@ def PSNR(mse):
 # --- main ---
 # 生成済みの係数行列の読み込み
 # 180どまで20step
-cij_x = np.load(r"Cij/cij_x_2.npy")
-cij_0 = np.load(r"Cij/cij_0_2.npy")
-cij_1 = np.load(r"Cij/cij_1_2.npy")
-cij_2 = np.load(r"Cij/cij_2_2.npy")
+cij_x = np.load(r"Cij/cij_x_3.npy")
+cij_0 = np.load(r"Cij/cij_0_3.npy")
+cij_1 = np.load(r"Cij/cij_1_3.npy")
+cij_2 = np.load(r"Cij/cij_2_3.npy")
 
-b = np.load(r"sinogram/sinogram.npy")
+#b = np.load(r"sinogram/sinogram.npy")
 b_unwrap = np.load(r"sinogram/sinogram_unwrap.npy")
-n_z, n_angle, n_plane = b.shape
+b_comp = np.load(r"sinogram/sinogram_complex.npy")
+b = np.load(r"sinogram/sinogram.npy")
+n_z, n_angle, n_plane = b_unwrap.shape
+b_unwrap = b_unwrap / np.amax(b_unwrap)
+b_comp = b_comp / np.amax(b_comp)
 b = b / np.amax(b)
 # img_ori = img_read(r"image/cat_1024.png")
 # img_noise = img_read(r"image/cat_1024_noise.png")
 
-lam1 = 0.001
-N_fgp = 20
-N_mfista = 100
-L = 1*10e2
+lam1 = 0.00001
+N_fgp = 5
+N_mfista = 200
+L = 1*10e4
 
 layer,angle,x = b.shape
 print(layer,angle,x)
+print(f"lambda:{lam1},N_fgp:{N_fgp},N_mfista:{N_mfista},L:{L}")
 # image_3d = np.zeros((layer,x,x),dtype="complex128")
 # f_history = np.zeros((layer,N_mfista))
 # for i in range(layer):
@@ -394,14 +399,18 @@ print(layer,angle,x)
 # print(f_his.shape)
 # plt.plot(f_his[60]);plt.xlabel("iteration(N)");plt.ylabel("F=|A(x)-b|+Tv(X)");plt.title(f"z:{0.15/128*60*100:.1f}cm")
 # plt.show()
-# img_1, f1 = MFISTA_tomography(b[int(n_z/2)], lam1, N_mfista, N_fgp,"isotropic",L,cij_x, cij_0, cij_1, cij_2)
+img_1, f1 = MFISTA_tomography(b[int(n_z/2)], lam1, N_mfista, N_fgp,"isotropic",L,cij_x, cij_0, cij_1, cij_2)
 img_2, f2 = MFISTA_tomography(b_unwrap[int(n_z/2)], lam1, N_mfista, N_fgp, "isotropic",L,cij_x, cij_0, cij_1, cij_2)
+img_3, f3 = MFISTA_tomography(b_comp[int(n_z/2)], lam1, N_mfista, N_fgp, "isotropic",L,cij_x, cij_0, cij_1, cij_2)
 
-# plt.subplot(221,title=f"Phase Wrap, isotropic \n intensity,{0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.abs(img_1),"viridis");plt.colorbar(label='Amplitude')
-# plt.subplot(222,title=f"isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.angle(img_1),"hsv");plt.colorbar(label='Phase')
+plt.subplot(231,title=f"Phase Wrap, isotropic \n intensity,{0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.abs(img_1),"hsv");plt.colorbar(label='Phase')
+plt.subplot(234,title=f"isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.angle(img_1),"hsv");plt.colorbar(label='Phase')
 
-plt.subplot(223,title=f"Phase Unwrap, isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.abs(img_2),"hsv");plt.colorbar(label='Amplitude')
-plt.subplot(224,title=f"isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.angle(img_2),"hsv");plt.colorbar(label='Phase')
+plt.subplot(232,title=f"Phase Unwrap, isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.abs(img_2),"hsv");plt.colorbar(label='Phase')
+plt.subplot(235,title=f"isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.angle(img_2),"hsv");plt.colorbar(label='Phase')
+
+plt.subplot(233,title=f"Phase Unwrap, isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.abs(img_3),"hsv");plt.colorbar(label='Amplitude')
+plt.subplot(236,title=f"isotropic \n phase, {0.15/n_z*(n_z/2)*100:.1f}cm");plt.imshow(np.angle(img_3),"hsv");plt.colorbar(label='Phase')
 
 plt.suptitle(f"lambda:{lam1}, N_fgp:{N_fgp}, N_mfista:{N_mfista} \n projection angle:0,90")
 plt.show()
