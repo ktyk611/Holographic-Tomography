@@ -87,120 +87,108 @@ def Prop(image_compex:np.ndarray,z_prop, pitch, lam):
     img_prop_crop = img_prop[int(y_size/4):int(3*y_size/4),int(x_size/4):int(3*x_size/4)]
     return img_prop_crop
 
-Hol_0 = img_read(r"Hologram/Hologram_0.png")
-Hol_45 = img_read(r"Hologram/Hologram_45.png")
-Hol_90 = img_read(r"Hologram/Hologram_90.png")
-size ,qq = Hol_0.shape
+# 投影画数N
+N = 60
+
 lam = 532e-9
 z_prop = 0.2
 pitch = 20e-6
+Hol_size = 128
 
-hol_0 = np.sqrt(Hol_0)
-hol_45 = np.sqrt(Hol_45)
-hol_90 = np.sqrt(Hol_90)
+Hol = np.zeros((N,Hol_size,Hol_size))
+hol = np.zeros((N,Hol_size,Hol_size))
+hol_fft = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
+hol_fft_crop = np.zeros((N,int(Hol_size/4),int(Hol_size/4)),dtype="complex128")
+hol_fft_pad = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
+hol_prop = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
+hol_recon = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
+recon_phase = np.zeros((N,Hol_size,Hol_size))
+recon_phase_norm = np.zeros((N,Hol_size,Hol_size))
+re_unwrap = np.zeros((N,Hol_size,Hol_size))
 
-# --- 空間周波数分布 ---
-hol_0_fft = np.fft.fftshift(np.fft.fft2(Hol_0))
-hol_45_fft = np.fft.fftshift(np.fft.fft2(Hol_45))
-hol_90_fft = np.fft.fftshift(np.fft.fft2(Hol_90))
+# --- 逆伝播用の関数 ---
+prop_func = H_tf_vectorized(Hol_size,pitch, z_prop,lam)
 
-# plt.subplot(131,title="hol_0_fft");plt.imshow(np.log(np.abs(hol_0_fft)+1),"gray")
-# plt.subplot(132,title="hol_45_fft");plt.imshow(np.log(np.abs(hol_45_fft)+1),"gray")
-# plt.subplot(133,title="hol_90_fft");plt.imshow(np.log(np.abs(hol_90_fft)+1),"gray")
-# plt.show()
+# --- Hologram の逆伝播計算からの位相成分と位相アンラップ ---
+for i in range (N):
+    path = f"Hologram/Hologram_{i}.png"
+    Hol[i] = img_read(path)
+    hol[i] = np.sqrt(Hol[i])
+    # --- 空間周波数分布 ---
+    hol_fft[i] = np.fft.fftshift(np.fft.fft2(Hol[i]))
+    # --- 物体光成分の抽出 ---
+    hol_fft_crop[i] = hol_fft[i][96:128,96:128]
+    # --- ゼロパディング ---
+    hol_fft_pad[i] = np.pad(hol_fft_crop[i],48)
+    # --- 逆伝播 ---   
+    hol_prop[i] = hol_fft_pad[i] * prop_func
+    hol_recon[i] = np.fft.ifft2(np.fft.ifftshift(hol_prop[i]))
+    # --- 位相分布（）の正規化 ---
+    recon_phase[i] = np.angle(hol_recon[i])
+    recon_phase_norm[i] = normalize(recon_phase[i])
+    # --- 位相アンラップ ---
+    # unwrap_phase(対象画像,(アンラップ基準位置（y,x）))
+    re_unwrap[i] = unwrap_phase(recon_phase_norm[i],(0,63))
 
-# --- 物体光成分の抽出 ---
-hol_0_fft_crop = hol_0_fft[78:128,78:128]
-hol_45_fft_crop = hol_45_fft[78:128,78:128]
-hol_90_fft_crop = hol_90_fft[78:128,78:128]
-# hol_0_fft_crop = hol_0_fft[96:128,96:128]
-# hol_45_fft_crop = hol_45_fft[96:128,96:128]
-# hol_90_fft_crop = hol_90_fft[96:128,96:128]
 
-hol_0_fft_pad = np.pad(hol_0_fft_crop,39)
-hol_45_fft_pad = np.pad(hol_45_fft_crop,39)
-hol_90_fft_pad = np.pad(hol_90_fft_crop,39)
-# 
+# --- ホログラムから Sinogram作成
+# img_z:投影角数
+img_z, img_y, img_x = hol_recon.shape
 
-# --- 逆伝播 ---
-prop_func = H_tf_vectorized(size,pitch, z_prop,lam)
-hol_0_prop = hol_0_fft_pad * prop_func
-hol_45_prop = hol_45_fft_pad * prop_func
-hol_90_prop = hol_90_fft_pad * prop_func
+# --- 位相アンラップした画像によるSinogram
+sinogram_unwrap = np.zeros((img_y,img_z,img_x))
+for i in range (img_y):
+    for j in range (img_z):
+        sinogram_unwrap[i,j,:] = re_unwrap[j,i,:]
 
-hol_0_recon = np.fft.ifft2(np.fft.ifftshift(hol_0_prop))
-hol_45_recon = np.fft.ifft2(np.fft.ifftshift(hol_45_prop))
-hol_90_recon = np.fft.ifft2(np.fft.ifftshift(hol_90_prop))
+# --- 位相アンラップ”しない”画像によるSinogram
+sinogram_wrap = np.zeros((img_y,img_z,img_x))
+for i in range (img_y):
+    for j in range (img_z):
+        sinogram_wrap[i,j,:] = recon_phase_norm[j,i,:]
 
-recon_0_phase = np.angle(hol_0_recon)
-recon_45_phase = np.angle(hol_45_recon)
-recon_90_phase = np.angle(hol_90_recon)
-n1 = normalize(recon_0_phase)
-n2 = normalize(recon_45_phase)
-n3 = normalize(recon_90_phase)
-# print(np.amin(normalize(recon_0_phase)))
-# img_write("Hologram_0_recon_phase.png",normalize(recon_0_phase))
-# img_write("Hologram_90_recon_phase.png",normalize(recon_90_phase))
+# --- 複素振幅分布（生のホログラム）によるSinogram
+sinogram_complex = np.zeros((img_y,img_z,img_x),dtype="complex128")
+for i in range (img_y):
+    for j in range (img_z):
+        sinogram_complex[i,j,:] = hol_recon[j,i,:]
 
-plt.subplot(231,title="0");plt.imshow(n1,"viridis");plt.colorbar(label='Amplitude')
-plt.subplot(232,title="45");plt.imshow(n2,"viridis");plt.colorbar(label='Amplitude')
-plt.subplot(233,title="90");plt.imshow(n3,"viridis");plt.colorbar(label='Amplitude')
-plt.subplot(234,title="0");plt.imshow(np.abs(hol_0_recon),"viridis")
-plt.subplot(235,title="45");plt.imshow(np.abs(hol_45_recon),"viridis")
-plt.subplot(236,title="90");plt.imshow(np.abs(hol_90_recon),"viridis")
+
+
+print(f"unwrap:{sinogram_unwrap.shape}")
+print(f"wrap:{sinogram_wrap.shape}")
+print(f"complex:{sinogram_complex.shape}")
+np.save(r"sinogram/sinogram_unwrap.npy",sinogram_unwrap)
+np.save(r"sinogram/sinogram_wrap.npy",sinogram_wrap)
+np.save(r"sinogram/sinogram_complex.npy",sinogram_complex)
+
+plt.subplot(131,title="hol_0_fft");plt.imshow(np.log(np.abs(hol_fft[0])+1),"gray")
+plt.subplot(132,title="hol_45_fft");plt.imshow(np.log(np.abs(hol_fft[30])+1),"gray")
+plt.subplot(133,title="hol_90_fft");plt.imshow(np.log(np.abs(hol_fft[59])+1),"gray")
+plt.show()
+
+plt.subplot(131,title="hol_0_fft");plt.imshow(np.log(np.abs(hol_fft_pad[0])+1),"gray")
+plt.subplot(132,title="hol_45_fft");plt.imshow(np.log(np.abs(hol_fft_pad[30])+1),"gray")
+plt.subplot(133,title="hol_90_fft");plt.imshow(np.log(np.abs(hol_fft_pad[59])+1),"gray")
+plt.show()
+
+plt.subplot(231,title="0");plt.imshow(recon_phase[0],"viridis");plt.colorbar(label='Amplitude')
+plt.subplot(232,title="45");plt.imshow(recon_phase[30],"viridis");plt.colorbar(label='Amplitude')
+plt.subplot(233,title="90");plt.imshow(recon_phase[59],"viridis");plt.colorbar(label='Amplitude')
+plt.subplot(234,title="0");plt.imshow(np.abs(recon_phase[0]),"viridis");plt.colorbar(label='Amplitude')
+plt.subplot(235,title="45");plt.imshow(np.abs(recon_phase[30]),"viridis");plt.colorbar(label='Amplitude')
+plt.subplot(236,title="90");plt.imshow(np.abs(recon_phase[59]),"viridis");plt.colorbar(label='Amplitude')
 plt.suptitle(f"Hologram Recon Image Phase")
 plt.show()
 
-phase_0 = n1
-phase_45 = n2
-phase_90 = n3
 
-phase_0[0,63:64] = 0
-phase_45[0,63:64] = 0
-phase_90[0,63:64] = 0
-
-plt.subplot(131);plt.imshow(phase_0,"viridis")
-plt.subplot(132);plt.imshow(phase_45,"viridis")
-plt.subplot(133);plt.imshow(phase_90,"viridis")
+plt.subplot(131);plt.imshow(re_unwrap[0],"viridis")
+plt.subplot(132);plt.imshow(re_unwrap[30],"viridis")
+plt.subplot(133);plt.imshow(re_unwrap[59],"viridis")
 plt.suptitle(f"Hologram Recon Image Phase unwrap")
 plt.show()
 
-re_0_unwrap = unwrap_phase(phase_0,(0,63))
-re_45_unwrap = unwrap_phase(phase_45,(0,63))
-re_90_unqrap = unwrap_phase(phase_90,(0,63))
-
-plt.subplot(131);plt.imshow(re_0_unwrap,"viridis")
-plt.subplot(132);plt.imshow(re_45_unwrap,"viridis")
-plt.subplot(133);plt.imshow(re_90_unqrap,"viridis")
-plt.suptitle(f"Hologram Recon Image Phase unwrap")
+plt.subplot(131,title="unwrap");plt.imshow(sinogram_unwrap[30],"gray")
+plt.subplot(132,title="wrap");plt.imshow(sinogram_wrap[30],"gray")
+plt.subplot(133,title="complex");plt.imshow(np.angle(sinogram_complex[30]),"gray")
 plt.show()
-# --- ホログラムから Sinogram作成
-img_y, img_x = hol_0_recon.shape
-
-sinogram_unwrap = np.zeros((img_y, 3,img_x),dtype="complex128")
-for i in range (img_y):
-    sinogram_unwrap[i,0,:] = re_0_unwrap[i]
-    sinogram_unwrap[i,1,:] = re_45_unwrap[i]
-    sinogram_unwrap[i,2,:] = re_90_unqrap[i]
-
-sinogram = np.zeros((img_y, 3,img_x),dtype="complex128")
-for i in range (img_y):
-    sinogram[i,0,:] = n1[i]
-    sinogram[i,1,:] = n2[i]
-    sinogram[i,2,:] = n3[i]
-
-sinogram_comp = np.zeros((img_y, 3,img_x),dtype="complex128")
-for i in range (img_y):
-    sinogram_comp[i,0,:] = hol_0_recon[i]
-    sinogram_comp[i,1,:] = hol_45_recon[i]
-    sinogram_comp[i,2,:] = hol_90_recon[i]
-
-np.save(r"sinogram/sinogram_unwrap.npy",sinogram_unwrap)
-np.save(r"sinogram/sinogram.npy",sinogram)
-np.save(r"sinogram/sinogram_complex.npy",sinogram_comp)
-
-# plt.subplot(221);plt.imshow(np.abs(hol_0_recon),"gray")
-# plt.subplot(222);plt.imshow(np.angle(hol_0_recon),"hsv")
-# plt.subplot(223);plt.imshow(np.abs(hol_90_recon),"gray")
-# plt.subplot(224);plt.imshow(np.angle(hol_90_recon),"hsv")
-# plt.show()
