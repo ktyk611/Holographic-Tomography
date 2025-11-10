@@ -87,14 +87,34 @@ def Prop(image_compex:np.ndarray,z_prop, pitch, lam):
     img_prop_crop = img_prop[int(y_size/4):int(3*y_size/4),int(x_size/4):int(3*x_size/4)]
     return img_prop_crop
 
+# 逆伝播用の関数
+def Hologram_Recon(Hologram, Prop_Func,):
+    Hol_size_y, Hol_size_x = Hologram.shape
+    hol_fft = np.zeros((Hol_size_y,Hol_size_x),dtype="complex128")
+    hol_fft_pad = np.zeros((Hol_size_y,Hol_size_x),dtype="complex128")
+    hol_recon = np.zeros((Hol_size_y,Hol_size_x),dtype="complex128")
+
+    hol = np.sqrt(Hologram)
+    # --- 空間周波数分布 ---
+    hol_fft = np.fft.fftshift(np.fft.fft2(hol))
+    # --- 物体光成分の抽出 ---
+    hol_fft_crop = hol_fft[192:256,192:256]
+    # --- ゼロパディング ---
+    hol_fft_pad = np.pad(hol_fft_crop,96)
+    # --- 逆伝播 ---   
+    hol_prop = hol_fft_pad * Prop_Func
+    hol_recon = np.fft.ifft2(np.fft.ifftshift(hol_prop))
+    return hol_recon
+
 # 1. 時間差をつけて取得したホログラムを3つ再生（複素振幅）
 # 2. 時間平均 H_ave を生成
 # 3. 複素デモジュレーションする（）
 
 # 投影画数N
 N = 60
-time_resol = 3
+time_resol = 6
 sound_freq = 40e3
+sample_freq =10e3
 
 lam = 532e-9
 z_prop = 0.2
@@ -105,75 +125,29 @@ Hol_size = 256
 prop_func = H_tf_vectorized(Hol_size,pitch, z_prop,lam)
 
 # --- delay 0 ---
-hol_0_fft = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-hol_0_fft_pad = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-hol_0_recon = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
+hol_fft = np.zeros((time_resol,N,Hol_size,Hol_size),dtype="complex128")
+hol_fft_pad = np.zeros((time_resol,N,Hol_size,Hol_size),dtype="complex128")
+hol_recon = np.zeros((time_resol,N,Hol_size,Hol_size),dtype="complex128")
 
 # --- Hologram の逆伝播計算 ---
-for i in range (N):
-    path = f"Hologram/delay0/Hologram_{i}.png"
-    Hol = img_read(path)
-    hol = np.sqrt(Hol)
-    # --- 空間周波数分布 ---
-    hol_0_fft[i] = np.fft.fftshift(np.fft.fft2(hol))
-    # --- 物体光成分の抽出 ---
-    hol_fft_crop = hol_0_fft[i][192:256,192:256]
-    # --- ゼロパディング ---
-    hol_0_fft_pad[i] = np.pad(hol_fft_crop,96)
-    # --- 逆伝播 ---   
-    hol_prop = hol_0_fft_pad[i] * prop_func
-    hol_0_recon[i] = np.fft.ifft2(np.fft.ifftshift(hol_prop))
+for j in range (time_resol):
+    for i in range (N):
+        path = f"Hologram/delay{j}/Hologram_{i}.png"
+        Hol = img_read(path)
+        hol_recon[j,i,:,:] = Hologram_Recon(Hol,prop_func)
 # ------
-
-# --- delay 0.8 ---
-hol_08_fft = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-hol_08_fft_pad = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-hol_08_recon = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-
-# --- Hologram の逆伝播計算 ---
-for i in range (N):
-    path = f"Hologram/delay0.8/Hologram_{i}.png"
-    Hol = img_read(path)
-    hol = np.sqrt(Hol)
-    # --- 空間周波数分布 ---
-    hol_08_fft[i] = np.fft.fftshift(np.fft.fft2(hol))
-    # --- 物体光成分の抽出 ---
-    hol_fft_crop = hol_08_fft[i][192:256,192:256]
-    # --- ゼロパディング ---
-    hol_08_fft_pad[i] = np.pad(hol_fft_crop,96)
-    # --- 逆伝播 ---   
-    hol_prop = hol_08_fft_pad[i] * prop_func
-    hol_08_recon[i] = np.fft.ifft2(np.fft.ifftshift(hol_prop))
-
-# --- delay 1.6 ---
-hol_16_fft = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-hol_16_fft_pad = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-hol_16_recon = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
-
-# --- Hologram の逆伝播計算 ---
-for i in range (N):
-    path = f"Hologram/delay1.6/Hologram_{i}.png"
-    Hol = img_read(path)
-    hol = np.sqrt(Hol)
-    # --- 空間周波数分布 ---
-    hol_16_fft[i] = np.fft.fftshift(np.fft.fft2(hol))
-    # --- 物体光成分の抽出 ---
-    hol_fft_crop = hol_16_fft[i][192:256,192:256]
-    # --- ゼロパディング ---
-    hol_16_fft_pad[i] = np.pad(hol_fft_crop,96)
-    # --- 逆伝播 ---   
-    hol_prop = hol_16_fft_pad[i] * prop_func
-    hol_16_recon[i] = np.fft.ifft2(np.fft.ifftshift(hol_prop))
 
 # 時間的な変化から複素投影を作成
 complex_proj = np.zeros((N,Hol_size,Hol_size),dtype="complex128")
 for i in range (N):
-
-    H_ave = (hol_0_recon[i] + hol_08_recon[i] + hol_16_recon[i])/3
-
-    complex_proj[i] = 2/time_resol * ((hol_0_recon[i] - H_ave)*np.exp(1j*2*np.pi*sound_freq/(1*10*10e3)) \
-        + (hol_08_recon[i] - H_ave)*np.exp(1j*2*np.pi*sound_freq/(2*10*10e3)) \
-        + (hol_16_recon[i] - H_ave)*np.exp(1j*2*np.pi*sound_freq/(3*10*10e3)))
+    Hol_ave = np.zeros((Hol_size,Hol_size),dtype="complex128")
+    for j in range (time_resol):
+        Hol_ave += (hol_recon[j,i,:,:])/time_resol
+    
+    for j in range (time_resol):
+        complex_proj[i] += (hol_recon[j,i,:,:] - Hol_ave) * np.exp(1j*2*np.pi*sound_freq*j/(sample_freq))/time_resol
+        
+    
 
 
 # --- 複素投影から Sinogram作成
